@@ -62,13 +62,58 @@ However, for continuous time long format is preferred because it handles missing
 # Question 4: In longitudinal studies, some variables are said to be static or time invariant as opposed to dynamic or time varying. Static do not change over time during the study. Examples include sex, patient condition at discharge, or SES. An example of a dynamic variable is SF36. Using the data in the wide format, compute appropriate summary statistics for the time-varying SF36 mental health scores separately at baseline and at each follow-up time. 
 
 ```{r}
+# Calculate Summary Statistics
+
+wide = read_csv ("Lab0_wide.csv") # Data is already been read in, only need to run this line if it hasn't been stored 
+summary(wide) 
+apply(wide,2,FUN=function(x) sqrt(var(x)))
 
 ```
 
 What is the mean (standard deviation) of the SF36 mental health scores at hospital discharge? 
+The mean SF-26 score at hospital discharge (Y0) is 36.42, and the standard deviation is 20.22
 
 At 4-months post hospital discharge?  
+The mean SF-36 score at 4 months is 49.95, and the standard deviation is 9.87
 
 What is the mean (minimum and maximum) age and illness severity of the patients?  
+The mean age of participant is 49.83, the age range of the study population is 32.11-68.49. The mean illness severity for patients is 27.09 with illness severity ranging from 16.21 to 36.08
 
-What proportion of the patients are female?  
+What proportion of the patients are female? 
+26% of the sample is female. 
+
+# Question 5: 5. In question 4, you used the longitudinal data in the wider format. This format is nice for computing summary statistics associated with the outcome over time and time invariant patient level variables.  However, the data is often required to be in the longer format for plotting or fitting regression models.  
+
+When you “reshape” the data from “wider” to “longer”, how many rows of data should be produced?
+- When reshaped from longer to wider, the data should have 9 columns and 100 rows of data
+- When reshaped from wider to longer, th data should have only 6 column columns but 500 observations.
+
+Use the commands below to “reshape” the data from “wider” to “longer”.  
+```{r}
+### Reshape from wider to longer
+
+# using base R "reshape"
+	reshape(wide, varying=1:5, ids=seq(1,100), direction="long", v.names="y") %>%
+head
+
+# using tidyverse "pivot_longer"
+wide %>%
+	pivot_longer(-c(id, age, severity, gender), names_to = "time", values_to = "y") %>%
+	arrange(id) %>% 
+	head()
+
+```
+
+```{r}
+### Reshape from longer to wider
+# using base R "reshape"
+reshape(long,v.names="y", idvar= "id",timevar="time", direction="wide") %>%
+head
+
+# using tidyverse "pivot_wider"
+long %>%
+	pivot_wider(names_from = time, values_from = y) %>%
+	head()
+
+```
+
