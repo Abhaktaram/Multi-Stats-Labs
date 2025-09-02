@@ -7,12 +7,7 @@ output: html_document
 
 # Broader Set up for Lab 0 
 ```{r}
-# Connect to Github
-usethis::use_git()
-usethis::use_github()
-
 # Install and Load Packages & Read Data in
-install.packages("tidyverse")
 library(tidyverse)
 
 ```
@@ -37,7 +32,9 @@ A multi-level outcome refers to data that has a hierarchal or nested structure. 
 
 The data in this study is also longitudinal because the data is clustered across time as well. There is repeated measurements of the SF-36 being collected monthly for the same patients for 4 months after hospital discharge. This allows us to explore variance between individuals and within individuals across time. 
 
-# Question 2: There are two ways in which longitudinal data will be formatted: wider and longer.  Wider is used for making displays of autocorrelation; longer is used for most regression analyses. Use the commands below and then discuss with your peers what the differences are between these two formats.
+# Question 2: 
+
+There are two ways in which longitudinal data will be formatted: wider and longer.  Wider is used for making displays of autocorrelation; longer is used for most regression analyses. Use the commands below and then discuss with your peers what the differences are between these two formats.
 
 ```{r}
 # Read in data in wide format
@@ -54,17 +51,19 @@ long[1:10,]
 ```
 In a long format each row represents one observation, with separate rows for each measurement per subject. This may result in greater amounts of redundancy if there are some variables that remain fairly constant across time periods for the same person e.g. height in adults. 
 
-# Question 3: In longitudinal studies, the times of measurements can either be discrete, that is, take values from a list of fixed set of times (i.e. at hospital discharge and then monthly for 4 months) or continuous, taking values at any times. Discuss with your peers whether there is a preference in data formatting (wider vs. longer) when time is discrete vs. continuous.
+# Question 3: 
+
+In longitudinal studies, the times of measurements can either be discrete, that is, take values from a list of fixed set of times (i.e. at hospital discharge and then monthly for 4 months) or continuous, taking values at any times. Discuss with your peers whether there is a preference in data formatting (wider vs. longer) when time is discrete vs. continuous.
 
 If the data are discrete its better to use the wide data as its easier to "see" the data. It's easy to see when empsy cells occur, each time point gets its own column. Summary statistics are easier to calculate as row calculations are less computationally intensive when compared to column calculations.
 
 However, for continuous time long format is preferred because it handles missing data better as they simply aren't included instead of storing the empty cells. It's easier to add covariates that change over time. It is space saving because when you have continuous data participants/patients may enter and leave the study at different times and in a wide format you might end up with a lot of empty cells. A long format also makes it easier to align time points easier and allows for easier matrix calculations. 
-# Question 4: In longitudinal studies, some variables are said to be static or time invariant as opposed to dynamic or time varying. Static do not change over time during the study. Examples include sex, patient condition at discharge, or SES. An example of a dynamic variable is SF36. Using the data in the wide format, compute appropriate summary statistics for the time-varying SF36 mental health scores separately at baseline and at each follow-up time. 
+
+# Question 4: 
+In longitudinal studies, some variables are said to be static or time invariant as opposed to dynamic or time varying. Static do not change over time during the study. Examples include sex, patient condition at discharge, or SES. An example of a dynamic variable is SF36. Using the data in the wide format, compute appropriate summary statistics for the time-varying SF36 mental health scores separately at baseline and at each follow-up time. 
 
 ```{r}
 # Calculate Summary Statistics
-
-wide = read_csv ("Lab0_wide.csv") # Data is already been read in, only need to run this line if it hasn't been stored 
 summary(wide) 
 apply(wide,2,FUN=function(x) sqrt(var(x)))
 
@@ -82,7 +81,8 @@ The mean age of participant is 49.83, the age range of the study population is 3
 What proportion of the patients are female? 
 26% of the sample is female. 
 
-# Question 5: 5. In question 4, you used the longitudinal data in the wider format. This format is nice for computing summary statistics associated with the outcome over time and time invariant patient level variables.  However, the data is often required to be in the longer format for plotting or fitting regression models.  
+# Question 5: 
+In question 4, you used the longitudinal data in the wider format. This format is nice for computing summary statistics associated with the outcome over time and time invariant patient level variables.  However, the data is often required to be in the longer format for plotting or fitting regression models.  
 
 When you “reshape” the data from “wider” to “longer”, how many rows of data should be produced?
 - When reshaped from longer to wider, the data should have 9 columns and 100 rows of data
