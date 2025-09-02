@@ -5,35 +5,70 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-
+# Broader Set up for Lab 0 
+```{r}
+# Connect to Github
 usethis::use_git()
 usethis::use_github()
+
+# Install and Load Packages & Read Data in
+install.packages("tidyverse")
+library(tidyverse)
+
 ```
 ```{r}
-# Read the data into R
-library(tidyverse)
-wide = read_csv(“Lab0_wide.csv")
-wide %>% head(n = 3)
+# Read in Data
+data = read_csv("Lab 0/hsb_data.csv")
+data = data %>%
+  group_by(newid) %>% # Number of elements in each group
+  mutate(N = n(), n = row_number()) %>% # Index within group
+  ungroup()
+data %>%
+  select(newid, N, n, ses, sector) %>%
+  head()
+
+```
+# Question 1: 
+The outcome in your study is the SF-36 mental health score measured at hospital discharge and every monthly for 4 months after hospital discharge.  Discuss with your peers why the outcome in your study can be called “multivariate”, "multi-level", and “longitudinal”. Be prepared to define each of these descriptors of a study outcome.
+
+The outcome here is multivariate because the primary outcome is the SF-36 mental health score. The SF-36 is a composite score made up of multiple different different dependent variables that are summed together to create an estimate of mental health symptoms, in the case of this study among critically ill ICU survivors. 
+
+A multi-level outcome refers to data that has a hierarchal or nested structure. The observations are grouped within higher-level units. In this case patients are nested within outcomes, we are examining how the SF-36 score may vary across patients and also by hospital. 
+
+The data in this study is also longitudinal because the data is clustered across time as well. There is repeated measurements of the SF-36 being collected monthly for the same patients for 4 months after hospital discharge. This allows us to explore variance between individuals and within individuals across time. 
+
+# Question 2: There are two ways in which longitudinal data will be formatted: wider and longer.  Wider is used for making displays of autocorrelation; longer is used for most regression analyses. Use the commands below and then discuss with your peers what the differences are between these two formats.
+
+```{r}
+# Read in data in wide format
+wide = read_csv ("Lab 0/Lab0_wide.csv")
+wide[1:2,]
+
+```
+In a wide format data set, each row represents one individual, with multiple columns storing the different timepoints and other related variables. 
+```{r}
+# Read in data in long format
+long = read_csv ("Lab 0/Lab0_long.csv")
+long[1:10,]
+
+```
+In a long format each row represents one observation, with separate rows for each measurement per subject. This may result in greater amounts of redundancy if there are some variables that remain fairly constant across time periods for the same person e.g. height in adults. 
+
+# Question 3: In longitudinal studies, the times of measurements can either be discrete, that is, take values from a list of fixed set of times (i.e. at hospital discharge and then monthly for 4 months) or continuous, taking values at any times. Discuss with your peers whether there is a preference in data formatting (wider vs. longer) when time is discrete vs. continuous.
+
+If the data are discrete its better to use the wide data as its easier to "see" the data. It's easy to see when empsy cells occur, each time point gets its own column. Summary statistics are easier to calculate as row calculations are less computationally intensive when compared to column calculations.
+
+However, for continuous time long format is preferred because it handles missing data better as they simply aren't included instead of storing the empty cells. It's easier to add covariates that change over time. It is space saving because when you have continuous data participants/patients may enter and leave the study at different times and in a wide format you might end up with a lot of empty cells. A long format also makes it easier to align time points easier and allows for easier matrix calculations. 
+# Question 4: In longitudinal studies, some variables are said to be static or time invariant as opposed to dynamic or time varying. Static do not change over time during the study. Examples include sex, patient condition at discharge, or SES. An example of a dynamic variable is SF36. Using the data in the wide format, compute appropriate summary statistics for the time-varying SF36 mental health scores separately at baseline and at each follow-up time. 
+
+```{r}
+
 ```
 
-## R Markdown
+What is the mean (standard deviation) of the SF36 mental health scores at hospital discharge? 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+At 4-months post hospital discharge?  
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+What is the mean (minimum and maximum) age and illness severity of the patients?  
 
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+What proportion of the patients are female?  
