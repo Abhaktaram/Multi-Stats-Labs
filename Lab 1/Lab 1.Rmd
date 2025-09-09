@@ -163,8 +163,242 @@ head(C, 5)
 
 ### Question 7: 
 Display your simulated data using a spaghetti plot and a pairs plot. Calculate the mean and covariance matrix for your sample of n=100 simulated vectors. Use these plots and estimates to describe the patterns of potential scientific interest in the SF-36 data. (10 pts)
+```{r}
+# Load Libraries
+library(tidyverse)
+library(nlme)
+library(mvtnorm)
+install.packages("joineR")
+library(joineR)
+install.packages("GGally")
+library (GGally)
+```
 
+```{r}
+# Use your simulated SF-36 data (stored as dat)
+# Convert to long format for analysis
+df_long <- dat %>%
+  pivot_longer(cols = y0:y4, 
+               names_to = "time_point", 
+               values_to = "SF36_score") %>%
+  mutate(
+    time_numeric = as.numeric(str_extract(time_point, "\\d+")),
+    time_label = case_when(
+      time_numeric == 0 ~ "Discharge",
+      time_numeric == 1 ~ "Month 1", 
+      time_numeric == 2 ~ "Month 2",
+      time_numeric == 3 ~ "Month 3",
+      time_numeric == 4 ~ "Month 4"
+    )
+  )
 
+# Count unique subjects
+n <- length(unique(df_long$id))
+print(paste0("Number of subjects: ", n))
 
+# Generate summaries for plotting
+time.summaries <- df_long %>%
+	group_by(time_numeric, time_label) %>%
+	summarise(avgSF36 = mean(SF36_score),
+	          sdSF36 = sd(SF36_score),
+	          medSF36 = median(SF36_score),
+	          q75SF36 = quantile(SF36_score, 0.75),
+	          q25SF36 = quantile(SF36_score, 0.25),
+	          .groups = 'drop')
 
+print(time.summaries)
+```
+
+Visualize the sample means with a 95% confidence interval
+```{r}
+time.summaries %>%
+	ggplot() +
+	geom_point(aes(x = time_numeric, y = avgSF36), color = "red", size = 2) +
+	geom_line(aes(x = time_numeric, y = avgSF36), color = "red", size = 1) +
+  geom_pointrange(aes(x = time_numeric, y = avgSF36,
+                      ymin = avgSF36 - 2*sdSF36/sqrt(n), 
+                      ymax = avgSF36 + 2*sdSF36/sqrt(n))) +
+	scale_x_continuous(breaks = 0:4, 
+	                   labels = c("Discharge", "Month 1", "Month 2", "Month 3", "Month 4")) +
+  scale_y_continuous(breaks = seq(30, 55, 5)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10)) +
+	xlab("Time Point") +
+	ylab("SF-36 Mental Health Score") +
+	ggtitle("Average SF-36 Mental Health Scores Over Time (95% CI)")
+```
+Plot median and IQR
+```{r}
+time.summaries %>%
+  ggplot() +
+  geom_point(aes(x = time_numeric, y = medSF36), color = "blue", size = 2) +
+  geom_line(aes(x = time_numeric, y = medSF36), color = "blue", size = 1) +
+  geom_pointrange(aes(x = time_numeric, y = medSF36, 
+                      ymin = q25SF36, ymax = q75SF36)) +
+  scale_x_continuous(breaks = 0:4, 
+                     labels = c("Discharge", "Month 1", "Month 2", "Month 3", "Month 4")) +
+  scale_y_continuous(breaks = seq(30, 55, 5)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10)) +
+  xlab("Time Point") +
+  ylab("SF-36 Mental Health Score") +
+  ggtitle("Median SF-36 Mental Health Scores Over Time (IQR)")
+```
+Look at distributions within each timepoint using boxplots
+```{r}
+df_long %>%
+  ggplot() +
+  geom_boxplot(aes(group = time_numeric, x = time_numeric, y = SF36_score)) +
+  theme_bw() +
+  scale_x_continuous(breaks = 0:4, 
+                     labels = c("Discharge", "Month 1", "Month 2", "Month 3", "Month 4")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  xlab("Time Point") +
+  ylab("SF-36 Mental Health Score") +
+  geom_line(aes(group = id, x = time_numeric, y = SF36_score), 
+            alpha = 0.3, colour = "grey") + 
+  ggtitle("Individual SF-36 Mental Health Score Trajectories")
+```
+Overlay mean trajectory to create final spaghetti plot
+```{r}
+ggplot(df_long) +
+  geom_boxplot(aes(group = time_numeric, x = time_numeric, y = SF36_score)) +
+	geom_line(aes(group = id, x = time_numeric, y = SF36_score), 
+	          alpha = 0.3, colour = "grey") +
+	theme_bw() +
+	scale_x_continuous(breaks = 0:4, 
+	                   labels = c("Discharge", "Month 1", "Month 2", "Month 3", "Month 4")) +
+	theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+	xlab("Time Point") +
+	ylab("SF-36 Mental Health Score") +
+  geom_point(data = time.summaries, aes(x = time_numeric, y = avgSF36), 
+             color = "red", size = 2) +
+  geom_line(data = time.summaries, aes(x = time_numeric, y = avgSF36), #This is assing the mean trajctory line
+            color = "red", size = 1.2) +
+  geom_pointrange(data = time.summaries, 
+                  aes(x = time_numeric, y = avgSF36,
+                      ymin = avgSF36 - 2*sdSF36/sqrt(n), 
+                      ymax = avgSF36 + 2*sdSF36/sqrt(n)),
+                  color = "red") +
+  ggtitle("SF-36 Mental Health Score Trajectories with Population Mean")
+```
+### Question 8: 
+8. Calculate the autocorrelation matrix and autcorrelation function for your simulated data. Describe what else these estimates contribute to our understanding of the SF-36 data. (10 pts)
+
+```{r}
+# Calculate covariance matrix
+cov_mat = df.wide %>% 
+  select(-id) %>%
+  cov() 
+
+cov_mat[upper.tri(cov_mat)] = NA
+cov_mat %>%
+  as.data.frame()
+
+```
+
+Calculate autocorrelation of the residuals
+```{r}
+# The autocor command requires you to give: the residual, time variable, id variable
+fit = gls(SF36_score~as.factor(time_numeric),df_long)
+acf1 = ACF(fit,form= ~1|id)
+acf1
+
+# generate the lower bound
+acf1 = acf1 %>%
+	mutate(upper = 2 * 1 / sqrt(51 * (5-lag)))
+
+# Make the plot
+acf1 %>% 
+  ggplot() + 
+  geom_line(aes(x=lag, y=ACF))  +
+  geom_line(aes(x=lag, y=upper), linetype=2) + 
+  xlab("Lag (months)") +
+  ylim(0,1.02) +
+  theme_bw() +
+  ggtitle("Autocorrelation Function for Simulated SF-36 Scores")
+```
+
+Fit the saturated model: single factor anova, month is the factor
+
+```{r}
+# First convert to long format for model fitting
+df_long <- dat %>%
+  pivot_longer (cols = y0:y4, 
+                names_to = "time_point",
+                values_to = "SF36_score") %>%
+  mutate(
+    time_numeric = as.numeric(str_extract(time_point, "\\d+"))
+  )
+
+# Fit the model with time as a factor
+mod1 = lm(data = df_long, SF36_score ~ factor(time_numeric))
+df_long$resid1 = residuals(mod1)
+
+# Reshape residuals back to wide format
+df.wide = df_long %>% 
+  select(id, time_point, resid1) %>%
+  mutate(time_point = paste0(time_point, " Residuals")) %>%
+  pivot_wider(names_from = time_point, values_from = resid1)
+
+# Calculate covariance matrix
+cov_mat = df.wide %>% 
+  select(-id) %>%
+  cov() 
+
+cov_mat[upper.tri(cov_mat)] = NA
+cov_mat %>%
+  as.data.frame()
+```
+Create Scatterplot matrix
+```{r}
+panel.corr <- function(x, y){
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    r <- round(cor(x, y), digits=3)
+    txt <- paste0("Corr: ", r)
+    text(0.5, 0.5, txt, cex = 1)
+}
+
+df.wide %>% 
+  select(-id) %>%
+  pairs(upper.panel = panel.corr)
+```
+Calculate autocorrelation of the residuals
+```{r}
+# The autocor command requires you to give: the residual, time variable, id variable
+fit = gls(SF36_score~as.factor(time_numeric),df_long)
+acf1 = ACF(fit,form= ~1|id)
+acf1
+
+# generate the lower bound
+acf1 = acf1 %>%
+	mutate(upper = 2 * 1 / sqrt(51 * (5-lag)))
+
+# Make the plot
+acf1 %>% 
+  ggplot() + 
+  geom_line(aes(x=lag, y=ACF))  +
+  geom_line(aes(x=lag, y=upper), linetype=2) + 
+  xlab("Lag (months)") +
+  ylim(0,1.02) +
+  theme_bw() +
+  ggtitle("Autocorrelation Function for Simulated SF-36 Scores")
+```
+
+```{r}
+# Generate pairs plot
+panel.corr <- function(x, y) {
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0,1,0,1))
+  r <- round(cor(c,y), digits=3)
+  txt <- paste0("Corr: ", r)
+  text(0.5, 0.5, txr, cex =1)
+}
+
+dat %>%
+  select(y0, y1, y2, y2, y4) %>%
+  pairs(upper.panel = panel.corr, 
+        main = "Pairs Plot: Simulated Sf-36 Mental Health Scores")
+```
 
