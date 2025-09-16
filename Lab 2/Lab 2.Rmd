@@ -1,0 +1,310 @@
+---
+title: "Lab 2"
+author: "Ananya Bhaktaram"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Part A
+
+### Question 1: 
+You will explore the autocorrelation function within three hypothetical studies.  
+
+Each of the three hypothetical studies was generated assuming the following:
+
+$$\begin{pmatrix} Y_{i0} \\ Y_{i1} \\ Y_{i2} \\ Y_{i3} \\ Y_{i4} \end{pmatrix}
+\sim MVN\left(\begin{pmatrix} 35 \\ 38 \\ 41 \\ 44 \\ 47 \end{pmatrix},
+\begin{pmatrix}
+100 & ? & ? & ? & ? \\
+? & 100 & ? & ? & ? \\ 
+? & ? & 100 & ? & ? \\
+? & ? & ? & 100 & ? \\
+? & ? & ? & ? & 100 
+\end{pmatrix}\right)$$
+
+Your goal is to fill in the “?” within the variance specification for this k-variate normal distribution (k = 5).  To fill in the “?’ you will be identifying the parametric model that defines the within subject correlation.
+
+Go to the Courseplus site and find data from the three hypothetical studies:  “autocor1.csv”, “autocor2.csv” and “autocor3.csv”.  
+
+Fill in the following table:
+```{r}
+# Set working directory
+setwd("C:/Users/anany/OneDrive/Hopkins/PhD/Year 3/Multilevel Stats I/Multi Stats Labs")
+      
+# Load relevant libraries
+library(tidyverse)
+library(here)
+library(nlme)
+library(mvtnorm)
+library(ggplot2)
+
+# Read in data 
+autocor1 <- read_csv("Lab 2/autocor1.csv")
+autocor2 <- read_csv("Lab 2/autocor2.csv")
+autocor3 <- read_csv("Lab 2/autocor3.csv")
+```
+
+```{r}
+# Explore data sets
+head(autocor1); head(autocor2); head(autocor3)
+```
+
+
+**Hypothetical Study 1**
+```{r}
+# Run ACF function
+fit1 <- gls(y ~ as.factor(time), data = autocor1)
+ACF(fit1, form= ~ 1|id)
+```
+
+**Hypothetical Study 2**
+```{r}
+# Run ACF function
+fit2 <- gls(y ~ as.factor(time), data = autocor2)
+ACF(fit2, form= ~ 1|id)
+```
+
+**Hypothetical Study 3**
+```{r}
+# Run ACF function
+fit3 <- gls(y ~ as.factor(time), data = autocor3)
+ACF(fit3, form= ~ 1|id)
+```
+
+**ACF Summary Table**
+```{r}
+library(knitr)
+library(kableExtra)
+
+acf_table <- data.frame(
+  Lag = c(1:4, "Parametric Model:"),
+  Study1 = c(0.856, 0.820, 0.741, 0.731, "Toeplitz"),
+  Study2 = c(0.825, 0.836, 0.788, 0.819, "Exchangeable"),
+  Study3 = c(0.779, 0.586, 0.383, 0.269, "Autoregressive")
+)
+
+kable(acf_table,
+      col.names = c("Lag", "Sample autocorrelation function", 
+                    "Sample autocorrelation function", 
+                    "Sample autocorrelation function")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  add_header_above(c(" " = 1, 
+                     "Hypothetical Study 1" = 1, 
+                     "Hypothetical Study 2" = 1, 
+                     "Hypothetical Study 3" = 1))
+```
+
+## Question 2: 
+For each of the three hypothetical studies, estimate the monthly improvement in SF-36 mental health scores using both ordinary least squares (OLS) and weighted least squares (WLS) with an unstructured variance model; treat time as a linear variable.  Fill in the table below:
+
+**Estimating OLS & WLS for Hypothetical Study 1**
+```{r}
+# OLS model (treats time as linear)
+fit.ols1 <- lm(y ~ time, data = autocor1); summary(fit.ols1)
+
+# WLS with unstructured variance model
+fit.wls1 <- gls(y ~ time, 
+                correlation = corSymm(form = ~1|id), 
+                weights=varIdent(form= ~1|as.factor(time)), 
+                data= autocor1, method="ML"); 
+coef(summary(fit.wls1))
+```
+**Estimating OLS & WLS for Hypothetical Study 2**
+```{r}
+# OLS model (treats time as linear)
+fit.ols2 <- lm(y ~ time, data = autocor2); summary(fit.ols2)
+
+# WLS with unstructured variance model
+fit.wls2 <- gls(y ~ time, 
+                correlation = corSymm(form = ~1|id), 
+                weights=varIdent(form= ~1|as.factor(time)), 
+                data= autocor2, method="ML"); 
+coef(summary(fit.wls2))
+```
+
+**Estimating OLS and WLS for Hypothetical Study 3**
+```{r}
+# OLS model (treats time as linear)
+fit.ols3 <- lm(y ~ time, data = autocor3); summary(fit.ols3)
+
+# WLS with unstructured variance model
+fit.wls3 <- gls(y ~ time, 
+                correlation = corSymm(form = ~1|id), 
+                weights=varIdent(form= ~1|as.factor(time)), 
+                data= autocor3, method="ML"); 
+coef(summary(fit.wls3))
+```
+
+**OLS & WLS Summary Table**
+```{r}
+sf36_table <- data.frame(
+  Data = c("autocor1", "autocor2", "autocor3"),
+  OLS_Coef = c(2.830, 2.934, 2.823),
+  WLS_Coef = c(2.877, 2.933, 2.825),
+  OLS_SE = c(0.329, 0.297, 0.284),
+  WLS_SE = c(0.175, 0.123, 0.274)
+)
+
+kable(sf36_table,
+      col.names = c("Data", "OLS", "WLS", "OLS", "WLS"),
+      caption = "Monthly improvement in SF-36") %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  add_header_above(c(" " = 1, "Coefficient" = 2, "SE" = 2))
+```
+
+What is the true monthly improvement in SF-36 mental health scores?
+
+**Using the information provided by the model specification at the beginning of the lab the true monthly improvement in SF-36 scores is $(47-45)/(4-0) = 3$ points per month increase in SF-36 mental health scores after ICU discharge.**
+
+Do the estimated monthly improvement in SF-36 mental health scores differ across the two statistical methods?  If so, why?
+
+**No, both the OLS and WLS produced similar coefficients across all three hypothetical studies. This shows that there is a general increasing trend between 2.8-2.9 in SF-36 mental health scores at each monthly follow-up after being discharged from the ICU.**
+
+Do the standard errors for the estimated monthly improvement in SF-36 mental health scores differ across the two statistical methods?  If so, why?
+
+**Yes, the WLS is more accurate than the OLS because it produced smaller standard errors, given that the model re-weights the observations to obtain a new regression that incorporates unbiased estimater coefficients alongside uncorrelated residuals.**
+
+# Part B
+
+## Question 3: 
+Above, you compared the estimated monthly improvement in SF-36 mental health scores generated from the OLS and WLS procedures from a single study of 100 patients.  Here, we will explore the repeated sampling behavior of the estimated monthly improvement in SF-36 mental health scores assuming various models for the within subject variance across increasing sample sizes.  You will identify important patterns in the behavior of the estimates based on the specified model for the variance.  NOTE:  We are exploring the properties of WLS within the context of no missing data; we will consider missing data in more detail later in the course.
+
+SIMULATION STUDY:  Please DO NOT try to run this simulation study on your laptop; I ran the simulation in R on the Department of Biostatistics computing cluster using 25 parallel processing cores and it took a couple of hours to complete.
+
+I generated 10,000 simulated studies each for m = 10, 25, 100, 500 and 1000 patients.  The patients were sampled from a population of patients whose data follows the k-variate normal distribution (k = 5) below:
+
+$$\begin{pmatrix} 
+Y_{i0} \\ 
+Y_{i1} \\ 
+Y_{i2} \\ 
+Y_{i3} \\ 
+Y_{i4} 
+\end{pmatrix} 
+\sim MVN\left(
+\begin{pmatrix} 
+35 \\ 
+38 \\ 
+41 \\ 
+44 \\ 
+47 
+\end{pmatrix}, 
+V_i = \begin{pmatrix}
+100 & 100 \times \rho & 100 \times \rho^2 & 100 \times \rho^3 & 100 \times \rho^4 \\
+100 \times \rho & 100 & 100 \times \rho & 100 \times \rho^2 & 100 \times \rho^3 \\
+100 \times \rho^2 & 100 \times \rho & 100 & 100 \times \rho & 100 \times \rho^2 \\
+100 \times \rho^3 & 100 \times \rho^2 & 100 \times \rho & 100 & 100 \times \rho \\
+100 \times \rho^4 & 100 \times \rho^3 & 100 \times \rho^2 & 100 \times \rho & 100
+\end{pmatrix}
+\right)$$
+
+Therefore, the patients are sampled from a population where the monthly improvement in the SF-36 mental health scores is 3 units, the variance of the SF-36 mental health scores at any time is 100 and the correlation between any two SF-36 mental health scores is given by $Corr\left(Y_{ij},Y_{ik}\right)=\rho^{|j-k|}$ and ρ = 0.9; the AR1 model.
+
+In each of the 10,000 simulated studies, I estimated the monthly improvement in SF-36 mental health scores using the correct model for the mean (linear function of month) and the following models for the within subject variance:
+
+	WLS – V known:  I provided the correct information for Vi; i.e. $Var\left(Y_{ij}\right)=100\ $  and $Corr\left(Y_{ij},Y_{ik}\right)={0.9}^{|j-k|}$
+	WLS $– V estimated:  I assumed the correct model for Vi but I estimated the required parameters within each of the simulated studies
+	WLS – V unstructured:  I did not assume a model for Vi so estimated 5 variance and 10 correlation parameters within each of the simulated studies.
+	OLS:  I assumed the SF-36 mental health scores from the same subject were uncorrelated and that the variance of the SF-36 mental health scores was the same at all the measurement times and estimated the variance within each of the simulated studies.
+
+The table below displays the bias and variance of the 10,000 estimated monthly improvements in SF-36 mental health scores based on different sample sizes and the models i. through iv.   The bias is defined as the average of the 10,000 estimated monthly improvements in SF-36 mental health scores over the simulated studies minus 3 (the true monthly improvement).
+
+**Provided Summary Table**
+```{r}
+simulation_table <- data.frame(
+  Sample_size = c(10, 25, 100, 500, 1000),
+  Bias_WLS_known = c(-0.005, -0.004, -0.002, -0.0005, -0.0006),
+  Bias_WLS_estimated = c(-0.005, -0.004, -0.002, -0.0005, -0.0007),
+  Bias_WLS_unstructured = c(-0.007, -0.003, -0.002, -0.0004, -0.0007),
+  Bias_OLS = c(-0.003, -0.003, -0.002, -0.0003, -0.0005),
+  Variance_WLS_known = c(0.422, 0.172, 0.0430, 0.00883, 0.00439),
+  Variance_WLS_estimated = c(0.422, 0.172, 0.0430, 0.00883, 0.00439),
+  Variance_WLS_unstructured = c(0.678, 0.200, 0.0443, 0.00888, 0.00440),
+  Variance_OLS = c(0.442, 0.181, 0.0451, 0.00925, 0.00458)
+)
+
+# Create the table with proper headers
+kable(simulation_table,
+      col.names = c("Sample size (m)", 
+                    "WLS – V known", "WLS – V estimated", "WLS - unstructured", "OLS",
+                    "WLS – V known", "WLS – V estimated", "WLS - unstructured", "OLS"),
+      caption = "Simulation Results: Bias and Variance") %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  add_header_above(c(" " = 1, "Bias" = 4, "Variance" = 4))
+```
+
+
+Based on the results in the table answer the following questions:
+
+a)	For a fixed sample size, how does the bias compare across the models specified by the within subject variance?
+
+**While variance specification can dramatically effect the variance of estimates, which can be seen in the right half of the summary table, but for a fixed sample size, the choice of within-subject variance specification has minimal impact on bias. This can be seen because all four methods produced nearly unbiased estimates of the monthly improvement parameter.**
+
+b)	Regardless of the model selected for the within subject variance, how does the bias change as the sample size goes from small (m = 10) to large (m = 1000)?
+
+**The bias consistently decreases toward zero as the sample size increases from small(m=10) to large(m=1000). This tells us that all four methods begin to converge toward the true parametric value as the sample size increases, independent of the within-subject variance.**
+
+c)	Compare the variance across WLS – V known to WLS – V estimated for fixed sample sizes.
+
+**Across all sample sizes, the WLS with known variance and WLS with estimated variance models produced identical variances. This indicates that uncertainty from estimating the variance-covariance structure did not result in increased variability in the coefficient estimates. V is deined by two values, the common variance, and the autoregressive correlation**
+
+d)	For small sample sizes (m = 10 and m = 25), compare the variance for WLS – V known and WLS – V estimated to WLS – unstructured?  If there are differences, what do you think drives the differences?
+
+**There is higher variance in the WLS-unstructured approach, when compared to the structured approaches (WLS-V known and WLS-V estimated). At sample size (m=10) the WLS-V known and WLS-V estimated is 0.422, while the WLS-unstructured is 0.678. This is a 61% higher variance at the smaller sample size. When the sample size is increased to m=25, the estimated variance for the structured models is 0.172, while the variance for WLS-unstructured is 0.200. At the larger sample size the difference in variance has shrunk to only being 16% higher. This is because when sample sizes are relatively small to the number of correlation parameters being estimated, the unstructured approach suffers from reduced statistical efficiency. As the sample size increases the difference decreases because there is more data per parameter to estimate--improving statistical efficiency.**
+
+e)	For larger sample sizes (m = 100 to m = 1000), compare the variance for WLS – V known and WLS – V estimated to WLS – unstructured?  If there are differences, what do you think drives the differences?
+
+**At larger sample sizes (m=100 to m=1000) the differences between the structured and unstructured approaches becomes negligible because there is more data per parameter which results in convergence and the production of nearly identical values from both the structured and unstructured approaches. At m=100 the unstructured only has 3% higher variance (0.0443 vs 0.0430). At m=500 the difference is reduced to 0.6% higher variance in the unstructured (0.00888 vs 0.00883). Finally, with a sample size of m=1000, the unstructured only has a 0.2% higher variance (0.00440 vs 0.00439).**
+
+f)	For each of the sample sizes considered, compute the relative efficiency of estimating the monthly improvement assuming the correct variance model to assuming independence.
+
+$$\frac{\text{Var}_{OLS}}{\text{Var}_{V-estimated}} = {\text{Relative Efficiency}}$$
+
+```{r}
+# Relative Efficiency at m=10
+RE_10 = (0.422/0.422)
+
+cat("The relative efficiency at sample size m =10 is:", round(RE_10,3))
+
+```
+
+```{r}
+# Relative Efficiency at m=25
+RE_25 = (0.181/0.172)
+
+cat("The relative efficiency at sample size m =25 is:", round(RE_25,3))
+```
+
+```{r}
+# Relative Efficiency at m=100
+RE_100 = (0.0451/0.0439)
+
+cat("The relative efficiency at sample size m =100 is:", round(RE_100,3))
+```
+
+```{r}
+# Relative Efficiency at m=500
+RE_500 = (0.00925/0.00883)
+
+cat("The relative efficiency at sample size m =500 is:", round(RE_500,3))
+```
+
+```{r}
+# Relative Efficiency at m=1000
+RE_1000 = (0.00458/0.00439)
+
+cat("The relative efficiency at sample size m =1000 is:", round(RE_1000,3))
+```
+
+General properties of WLS and frequently asked questions:
+
+I.	Regardless of how we specify the model for V, the WLS procedure produces an unbiased estimate of the monthly improvement in SF-36 mental health scores.
+
+II.	However, specifying the wrong model for V can have an impact on your inference!  EXAMPLE:  the OLS estimator produces an estimate of the variance that is 5% too large!
+
+III.	Why not always use the unstructured approach?  ANSWER:  in small samples, you found that the variance for the WLS- unstructured was inflated and what defines “small samples” will change depending on the complexity of the mean model and n (the number of observations within a subject).  In addition, sometimes there are unexpected dependencies in the empirical estimate of V using the unstructured approach so the model doesn’t fit (i.e. we are unable to invert the estimated V).
+
+IV.	Why not always use OLS?  You could if your goal is only estimation (i.e. interest is in prediction) not inference (hypothesis testing, confidence intervals).  If you are interested in inference, then you can get the wrong answer!
+
+V.	Our simulation study focused on data generated from an underlying multivariate normal distribution.  After we estimate the monthly improvement in SF-36 mental health scores, we want to estimate a confidence interval.  Our confidence interval methods rely on the assumption that the slope estimate is normally distributed.  Even if the data are not normally distributed, the normality of the slope estimates hold in large samples, due to the central limit theorem.
+
+
