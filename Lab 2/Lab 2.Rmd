@@ -307,4 +307,9 @@ IV.	Why not always use OLS?  You could if your goal is only estimation (i.e. int
 
 V.	Our simulation study focused on data generated from an underlying multivariate normal distribution.  After we estimate the monthly improvement in SF-36 mental health scores, we want to estimate a confidence interval.  Our confidence interval methods rely on the assumption that the slope estimate is normally distributed.  Even if the data are not normally distributed, the normality of the slope estimates hold in large samples, due to the central limit theorem.
 
+```{r}
+# R Session Information
+options(width = 120)
+sessioninfo::session_info()
+```
 
