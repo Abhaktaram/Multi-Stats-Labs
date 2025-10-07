@@ -135,7 +135,7 @@ a) Define the population mean yearly change in FEV1 among children receiving bud
 
 b) Define a child’s mean yearly change in FEV1 if the child received budesonide.
 
-**A specific child who is receiving budesonide's mean yearly change in FEV1 would be $\alpha_1i + \alpha_3 = (\alpha_1 + \alpha_1i) + \alpha_3$. $\alpha+1i = \alpha_1 + \alpha_1i$ represents the child's expected average yearly change at baseline, while $\alpha_3$ represents the additional change to their average yearly trajectory that is attributed to being in the budesonide treatment group. As a result the individual child's mean yearly change in FEV1 with budesonide is $\alpha_1 + \alpha_1i + \alpha_3.**
+**A specific child who is receiving budesonide's mean yearly change (assuming that budesonide is treatment group 2) in FEV1 would be $\alpha_1i + \alpha_3 = (\alpha_1 + \alpha_1i) + \alpha_3$. $\alpha+1i = \alpha_1 + \alpha_1i$ represents the child's expected average yearly change at baseline, while $\alpha_3$ represents the additional change to their average yearly trajectory that is attributed to being in the budesonide treatment group. As a result the individual child's mean yearly change in FEV1 with budesonide is $\alpha_1 + \alpha_1i + \alpha_3.**
 
 
 c) Interpret $a_{1i}$ within the context of the CAMP trial.
@@ -151,27 +151,145 @@ d) Suppose $\sigma_{01}$ is positive (i.e. > 0).  Interpret what this means in t
 Fit the model proposed above and answer the following questions.
 
 ```{r}
-Model 3: random intercept and random slope for time
-fit3 = lme(POSFEV ~ year+as.factor(trt):year,data=dat,na.action=na.omit,  
-   random = ~ 1 + year | id,method=”ML”)
+## Model 3: random intercept and random slope for time
+fit3 = lme(POSFEV ~ year+as.factor(trt):year,data=camp_data,na.action=na.omit,  
+   random = ~ 1 + year | id,method="ML")
 summary(fit3)
 
 ```
 
 a) Provide an interval that contains roughly 95% of children’s expected FEV1 values at baseline.
 
+$\alpha_0 \pm 1.96 \times \sqrt{SE(\alpha_0)^2 + \sigma_{0b}^2}$
+
+Lower bound = $1.8160690 -1.96 * \sqrt{(0.019233814)^2 +(0.5017182)^2}$
+            = $1.816 - 1.96 * \sqrt{0.0003699 + 0.2517}$
+            = $1.816 - 1.96 * 0.5017$ ## Doesn't this just come out to be the same as the standard deviation of the intercept? 
+            = 1.816 - 0.9833
+            = 0.8327 
+            
+Upper bound = 1.816 + 0.9833
+            = 2.7993
+            
+**95% of all children's expected FEV1 values at baseline fall within the range of 0.833-2.799 with the point estimate or mean being 1.816.**
+
 
 b) Provide an interval that contains roughly 95% of the expected yearly change in FEV1 among children receiving the placebo.
+
+$\alpha_1 \pm 1.96 \times \sqrt{SE(\alpha_1)^2 + \sigma^2_1B}$
+
+$0.2471685 \pm 1.96 \times 0.1034$
+
+$0.247 \pm 0.203$
+
+**The expected yearly change in FEV1 among children receiving the placebo is 0.247 with 95% CI:(0.044, 0.45).**
 
 
 c) Provide intervals that contains roughly 95% of the expected yearly change in FEV1 among children receiving budesonide and nedocromil, respectively
 
 
-BUDESONIDE:
+BUDESONIDE: $\alpha_1 + \alpha_2$
+            
+            = 0.2471685 + (-0.0210513) = 0.2261172
+
+for the 95% CI $Cov(\alpha_1,\alpha_2) = Corr(\alpha_1, \alpha_2) * SE(\alpha_2)$
+            
+            = -0.629 * 0.006185225 * 0.008955171 = -3.48 * 10^-5
+            
+The estimated 95% CI for FEV1 among children receiving budesonide (assuming that it is treatment group 1) is (0.2124, 0.2398) with the point estimate being 0.226
+
+NEDOCROMIL: $\alpha_1 + \alpha_3$
+            
+            = 0.2471685 + 0.0025269 = 0.2496954
+
+for the 95% CI $Cov(\alpha_1,\alpha_3) = Corr(\alpha_1, \alpha_3) * SE(\alpha_3)$
+
+            = `r -0.629 * 0.006185225 * 0.008966122`
+
+The estimated 95% CI for FEV1 among children receiving nedocromil (assuming that it is treatment group 2) is (0.236, 0.263) with a point estimate of 0.250.
+
+### Question 5: 
+Compare the fit of Model 3 to the models you considered in Homework 1.  Namely, fit the following parametric correlation models:
+  1.	Independence
+  2.	Exchangeable (or random intercept model)
+  3.	Exponential 
+  4.	Random intercept + Exponential correlation structure
+  5.	Random intercept + random slope for time
+```{r}
+# Fit the independence model
+mA = gls(POSFEV~year+as.factor(trt):year,data=camp_data,na.action=na.omit,method="ML")
+
+# Fit the exchangeable model
+mB = gls(POSFEV~year+as.factor(trt):year,data=camp_data,na.action=na.omit,correlation=corCompSymm(form=~1|id),method="ML")
+
+# Fit the exponential model
+mC = gls(POSFEV~year+as.factor(trt):year,data=camp_data,na.action=na.omit,correlation=corExp(form=~year|id),method="ML")
+
+# Fit the random intercept + exponential within subject correlation structure
+mD = lme(POSFEV~year+as.factor(trt):year,data=camp_data,na.action=na.omit,  
+   random = ~ 1 | id, correlation = corExp(form=~year|id),method="ML")
+
+# Fit the random intercept + slope model
+mE = lme(POSFEV~year+as.factor(trt):year,data=camp_data,na.action=na.omit,  
+   random = ~ 1 + year | id,method="ML")
+
+c(AIC(mA),AIC(mB),AIC(mC),AIC(mD),AIC(mE))
+
+```
+
+Based on the AIC statistics, which of these models is most consistent with the data?
+
+**Based off of the AIC values, the final model (random intercept with random slope) is the most consistent with the data as it has the lowest AIC score. Given how poorly the independence model performed we can interpret that our data does have strongly correlated FEV1 values. All models that included a random intercept performed better than those that did not, finally the inclusion of a random slope which allows for each individual to have their own rate of change fit the data the best. This suggests that children have different FEV1 levels at baseline (modeled by the random intercept) and they have different rates of FEV1 change over time (modeled by the random slope).**
+
+### Question 6: 
+
+Use the formula below to compute the estimate of $Var\left(Y_{ij}\right)$ at 2, 12, and 48 months using the fit of Model 3.  Compare these values to those obtained from the exploratory analysis conducted in Homework 1 (see Table 1).
+
+$$Var\left(Y_{ij}\right)={\sigma^2}_{0B}+{{year}^2}_{ij}\times{\sigma^2}_{1B}+2\times{year}_{ij}\times\sigma_{01}+{\sigma^2}_W$$
+$\sigma^2_0B$ = the variance of the random intercept squared (0.5017182)^2 = 0.02517
+
+$\sigma^2_1b$ = the variance of the random slope squared = (0.10248405)^2 = 0.0106
+
+$\sigma_01$ = the covariance between the random intercept and the slope ($Corr(\sigma_0B * \sigma_1B)$)
+            = 0.516 * o.5017182 * 0.1028405 = 0.0266
+
+$\sigma^2_W$ = the residual variance squared = (0.1345861)^2 = 0.0181
 
 
-NEDOCROMIL
+$Var(Y_ij) = 
 
+Calculated Table 1: 
+```{r}
+sigma2_0B <- 0.2517 # Variance from random intercept
+sigma2_1B <- 0.0106 # Variance from random slope
+sigma_01 <- 0.0266 # Estimated covariance between intercept and slope
+sigma2_W <- 0.0181  # Residual Variance
+
+# create time points for estimation
+months <- c(2,12,48)
+
+# Calculate variance at each time point
+variance <- sigma2_0B + months^2 * sigma2_1B + 2 * months * sigma_01 + sigma2_W
+
+# Create variance table
+variance_table <- data.frame(
+  "Time (months)" = months,
+  "Estimated Variance" = round(variance, 4),
+  "Standard Deviation" = round(sqrt(variance), 4)
+)
+
+# Display table for comparison to provided variance table
+knitr::kable(variance_table, 
+             caption = "Estimated Variance of FEV1 at Different Time Points")
+```
+
+
+Provided Table 1
+```{r}
+knitr::include_graphics("C:/Users/anany/OneDrive/Hopkins/PhD/Year 3/Multilevel Stats I/Multi Stats Labs/Lab 3/Provided Table 1.png")
+```
+
+**The variance estimates shown in the provided exploratory data analysis table are dramatically lower than the calculated ones using the outputs from model 3. This is because ANOVA only estimates between-subject variance at each time point, which is relatively low, whereas the mixed-effects model (model 3) estimates the total variance which includes between-subject, within subject and correlation effects. This accounts for how individual children's FEV outputs diverge over time, the random slope variance $\sigma^2_1B$ gets multiplied by year^2 in the provided equation, causing exponential growth, which is why the variance increases dramatically overtime. This tells us that at baseline, children's FEV1 measurements are relatively similar, but over time as children grow, their individual trajectories increase the spread in FEV1 values. The random slope component dictates a larger portion of variance at later lags. This pattern is fairly common in longitudinal studies when you anticipate that there will be substantial individual change over time.**
 
 ```{r}
 # R Session Information
