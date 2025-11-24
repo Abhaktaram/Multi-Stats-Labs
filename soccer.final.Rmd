@@ -1,9 +1,42 @@
 ---
-title: "Soccer Example"
-author: "Scott L. Zeger"
+title: "Project 2"
+author: "Ananya Bhaktaram"
 output: pdf_document
-date: "2025-11-08"
+date: today
 ---
+
+```{r}
+# Git set up 
+library(usethis)
+
+# Stay in your current directory
+setwd("C:/Users/anany/OneDrive/Hopkins/PhD/Year 3/Multilevel Stats II/Project 2")
+
+# Initialize git and add the remote
+system("git init")
+system("git remote add origin https://github.com/Abhaktaram/Multi-Stats-Labs.git")
+
+# Pull the existing repository content
+system("git pull origin main")  # or "master" if that's the default branch
+
+# Create your branch and proceed as before
+system('git checkout -b "MLM 2 projects"')
+system("git add .")
+system('git commit -m "Project 2 Initialization"')
+system('git push -u origin "MLM 2 projects"')
+```
+```{r}
+# Check current status
+system("git status")
+system("git branch")
+
+# Create and switch to new branch (this will bring your commits with you)
+system('git checkout -b "MLM-2-projects"')
+
+# Push the new branch
+system('git push -u origin "MLM-2-projects"')
+```
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
@@ -16,7 +49,7 @@ install.packages("readxl")
 #
 library(rjags)
 library(R2jags)
-library("tidyverse")
+library(tidyverse)
 library(exact2x2)
 library(readxl)
 
@@ -32,13 +65,16 @@ In this context, treating each player as if they are the only one, is an inferio
 
 Let's start by looking at the data. 
 
-1. For a player who takes one penalty shot and misses, why is the maximum likelihood estimate 0.0 of his true rate undesirable?  
+1. For a player who takes one penalty shot and misses, why is the maximum likelihood estimate 0.0 of his true rate undesirable? 
+**Given that this is an extrapolation of just one observation this would be an extreme conclusion. A maximum likelihood estimate of 0.0 would mean that that player will never make a penalty shot. It is unlikely that the true penalty scoring rate for a professional soccer player in the world cup would be 0, and the current MLE ignorse that contextual information.** 
+
 
 2. What might be meant by the expression "borrowing strength" when thinking about how to estimated a particular player's rate?
+**Borrowing strength refers to the use of population level mean, in this case the average penalty scoring rate amongst all players in the data set to get more precise estimates for an individual player where there is little or incomplete data to make a more accurate inference. In the case of the player who only took one penalty shot pulling this observation closer toward the population mean (shrinkage) is a more accurate estimation of his true scoring rate given what we know about professional soccer players.** 
 
 
 ```{r prepare dataset}
-setwd("/Users/szeger/Library/CloudStorage/OneDrive-JohnsHopkins/professional/courses/bio650s/bio656.2025/lectures 6-8 project 2/project2")
+setwd("C:/Users/anany/OneDrive/Hopkins/PhD/Year 3/Multilevel Stats II/Project 2")
 soccer = read_excel("soccer.xlsx")
 d=soccer[,2:10]
 rownames(d)=as.vector(soccer[,1])$Name
@@ -81,13 +117,14 @@ The histogram of the observed fraction of shots scored (right panel) shows that 
 There are two sources of variation that are combined in this histogram : (1) the heterogeneity among players in their true scoring rates $p_i$s. We will denote the variance of the $p_i$s by $\tau^2 = \mbox{var}(p_i)$; and (2) the statistical errors or differences between $\hat{p}_i$ and $p_i$. This is measured by the conditional variance $\mbox{var}(\hat{p}_i|p_i) = p_i(1-p_i)/n_i$ where $n_i$ is the number of shots attempted by player $i=1,\ldots,m.$
 
 3. What is we double the number of shots taken by each player without changing the observed rates (that is, also double the number of scoring shots). What will happen to the two sources of variability among the observed rates?
+**The heterogeneity among players, which is based on their underlying abilities, and represented by $\tau^2$ will not change as that source of variation is not dependent on sample size. However, by increasing the number of shots being taken the conditional variance or statistical error represented by $\mbox{var}(\hat{p}_i|p_i) = p_i(1-p_i)/n_i$ will be halved. We will be able to see the change on this histogram, as it should become more narrow (less spread) as players get closer to their true scoring rate, but the center of the histogram (which represents the mean observed rate) should stay the same.**
 
 On the left side of the plot below entitled "Linear approximate empirical Bayes estimates", the maximum likelihood estimate (mle) $\hat{p}_i$ of each player's true scoring rate $p_i=y_i/n_i$ is plotted along the black slanted line along with an exact binomial 95% confidence interval obtained by inverting the binomial test of H0: $p_i = p, \hspace{.1in}p \hspace{.05in} \epsilon \hspace{.05in}(0,1)$. A 95% confidence interval interval is defined to include all null values not rejected at the $\alpha=0.05$ level.
 
 What do you notice about the uncertainty in estimates near 0 and 1?  They have the widest confidence intervals. Why? Because they are for players who took fewer shots. If we were unsophisticated data analysts, we might make the mistake of ranking players based upon their observed scoring rates. This is a mistake because the best and worst-rated players would be the ones on whom we had the least information.
 
 4. Find a public health or other example, where ranking is done on observed rates so that the highest and lowest ranked units are the ones with the smallest n's?
-
+**Medicaid expansion coverage. 41 states and DC have expanded medicaid eligibility beyond 100% of the federal poverty level(FPL) A couple of states have gone beyond the standard 138% expansion. Minnesota, New York, Massachusetts, and Alaska extend coverage beyond 138% FPL, while 9 states have not chosen to extend coverage at all. Similar to the penalty kick example we are working through there are two sources of variation there are true state differences between policies and demographics across states that influence how well they implement and promote Medicaid. Additionally, smaller states may have higher uncertainty in their estimates. For example, the population of Wyoming (one of the few states that has not enacted Medicaid expansion) only has a population of roughly 580,000 people while California has a population of over 39 million this could result in widely different confidence intervals which might make it difficult to concretely rank highest and lowest coverage rates.**
 
 ```{r,fig.align='center'}
 # Calculate approximate empirical Bayes estimates of the scoring rates
@@ -118,6 +155,7 @@ c2= sum(d$shots^2 * d$total.var.phat)
 d$total.var.phat = d$p.adjust*(1-d$p.adjust)/d$shots + var.true.rates
 d$se.eb=sqrt( c1*d$total.var.phat + ( (1-d$alpha)/sum(d$shots))^2 * (c2-d$shots^2 * d$total.var.phat) ) 
 ```
+
 ```{r,fig.align='center',fig.cap ="Plot of maximum likelihood (ML-black) and empirical Bayes (EB-purple) estimates (with 95 percent confidence intervals) connected to show differential shrinkage toward the population mean depending on number of shots taken by the player."}
 par(mfrow=c(1,1))
 shakeit=rnorm(length(d$p))*.01
@@ -150,7 +188,8 @@ At level-1, we assume the number of goals scored by player $i$ is binomial with 
 
 The estimate for $p_0$ is just the total number of goals scored by all players divided by their total number of shots $\hat{p}_0= \sum_iy_i/\sum_in_i$; the estimate for $\tau^2$ is the amount of excess variance in the observed rates over what you would expect absent heterogeneity in the true rates: $\hat{\tau}^2 = (m-1)^{-1}\{\sum_i (y_i/n_i - \hat{p}_0)^2 - \sum_i \hat{p}_i(1-\hat{p}_i)/n_i\}$. When $\tau^2$ is small, this estimate can be negative, so we use 0 in that case. Another problem is that the estimate $\hat{p}_i(1-\hat{p}_i)/n_i$ for the binomial variance is 0 when $y_i$ is either 0 or $n_i$. That fact tends to bias this estimator towards higher values. But, these technical issues will be resolved when we use a more appropriate logistic linear model which we turn to now.
 
-5. For a given $n_i$, what value for $p_i$ makes the Gaussian approximation of the binomial disribution best?
+5. For a given $n_i$, what value for $p_i$ makes the Gaussian approximation of the binomial distribution best?
+**For a given $n_i$ a $p_i$ value of 0.5 makes for the best Gaussian approximation because the binomial distribution is symmetric when $p = 0.5$ while also providing maximum variation within the Gaussian approximation.**
 
 Let's go back to our 2-level model for the binary indicator whether or not a player makes a shot and derive the exact conditional distribution of $p_i$ given $y_i$ under a more appropriate set of assumptions. We will assume $y_i$ is binomial($p_i,n_i$) and $logit(p_i) = \beta_0 + b_i$ where $b_i$ has a known distribution with mean 0 and variance $\tau^2$. Then our job is to calculate the expected value and variance of of $p_i$ given $y_i$. 
 
@@ -177,12 +216,28 @@ The graphs below compare the Bayes estimates of each player's true scoring rate 
 #### Questions about the results below
 Here are some questions or tasks for you to address when reviewing and interpreting the results.
 
-6. Interpret the Rjags code in lines 181-219 explaining: (1) the prior specification for the logit-scale fixed effect (intercept) and the variance of the random effects; (2) the assumed distribution for the random effects; and (3) the likelihood of the data given the parameters and random effects. 
+6. Interpret the Rjags code in lines 181-219 explaining: (1) the prior specification for the logit-scale fixed effect (intercept) and the variance of the random effects; (2) the assumed distribution for the random effects; and (3) the likelihood of the data given the parameters and random effects.
+
+**The Rjags code in lines 181-219 first set a specific random seed which allows for us to ensure we have the same simulations for the MCMC over and over again. If we didn't specify the seed we would get similar but not identical MCMC simulations. We then assign the distributions using the ~, in this case we are specifying the means and the precision. In this code we are specifying the model so that the random intercepts are normally distributed with a mean of 0 and precision or variance of 0.44.The for loop is stepping through the data in order to calculate a linear approximator, and the bottom section after the for loop defines the data.**
+
 7. Compare the Rjags code in lines 181-219 with the code in lines 280-314. What is different and what effect does the change in assumption have on the resulting estimates in Figure 6?
+
+**The second block of Rjags operates under a t-distribution assumption with three degrees of freedom as compared to a Gaussian (or normal) distribution in the first Rjags code. Under a Gaussian distribution the probability of outliers less likely to occur, which means that the outliers are weighted less heavily and are pulled more closely to the mean. On the other hand, a t-distribution specification allows for greater flexibility making it more robust for identifying outliers, and weights them more heavily which is why you can see greater separation of the outliers from the population mean.**
+
+
 8. In a paragraph, explain Figure 1 to a lay reader. What does the figure show? What statistical principle does it illustrate?  Offer your best criticism the ML and Bayes results.
-9. Compare the empirical Bayes estimates to the fully Bayes ones in Figures 1 and 2. The comparison is made directly in Figure 3  (or in Figure 6). What are the main differences in the EB vs Bayes estiamates; in their confidence (or credible) intervals?  What aspects of the methods can help explain these differences?
+**Figure 1 shows a plot of the maximum likelihood estimation (in black) and the empirical Bayes estimations (in purple) with 95% confidence intervals connected to show how these estimations for each player differ. Maximum likelihood estimates the probability of an occurrence in this case a goal being scored, based on an assumed probability distribution (in this case normal distribution) given the data at hand. ML estimates do not taken into account prior or historical knowledge. As we can see in Figure 1, the goal scoring rate estimates are pretty similar for the bulk of the players that fall in the middle. However, the goal scoring estimations are more different between the two statistical methods for players who fall on the extreme ends.There were a few players who took very few shots and missed, like player 1 who took 1 shot and missed. The ML estimation for this player is 0.0 which means that the ML model predicts that he will never score a penalty goal. This is highly improbable given that he is a professional soccer player on a world cup team, and more indicative of the fact that we have little data to make a realistic probability estimate for him, which is why we see such a wide confidence interval. Empirical Bayes estimates work by taking a linear combination of the population estimate of goal scoring and the individual estimation. This allows us to borrow strength from the population mean to give a better estimation of an individuals true scoring rate by pulling them closer to the population average. The consequence of this is that in doing so you end up with "shrinkage" meaning that the estimations are much closer to the mean model, meaning that you can introduce bias if there is more substantial heterogeneity among players and the variation in true goal scoring rates is a function of their abilities rather than just sample size.**
+
+
+9. Compare the empirical Bayes estimates to the fully Bayes ones in Figures 1 and 2. The comparison is made directly in Figure 3  (or in Figure 6). What are the main differences in the EB vs Bayes estimates; in their confidence (or credible) intervals?  What aspects of the methods can help explain these differences?
+**The confidence intervals for the full Bayes estimates (shown in Figure 2) are narrower than the confidence intervals of those being made in the empirical Bayes (shown in Figure 1). These methods differ because the empirical Bayes samples from within the data and borrows strength for the individual scoring rates from the population mean estimates. The full Bayes method estimates the likelihood of occurrence across a specified distribution, in this case over a t-distribution with 3-degrees of freedom, using MCMC sampling estimates.**
+
+
 10. Figure 4 shows the prior and posterior distributions for the standard deviation of the random effect distribution. How does the data change the prior distribution?  What is an approximate 95% credible interval for the unknown standard deviation on the logit scale? How would you explain this to a lay person using penalty kick scoring rates?
+
 11. In Figure 7, the posterior distribution for the random effects standard deviation under the t-3 distribution assumption is added to the results in Figure 4. How does the posterior differ between the Gaussian and t-3 models?  Why?
+**I'm not sure, that I fully understand the distinction here, so I will be at Joe's office hours next week, because I am a little lost on the differences between what's actually happening between the models being estimated in Figure's 4-7.**
+
 ```{r,fig.align='center'}
 #
 #  full Bayesian analysis with Gaussian distribution for random intercepts on the logit scale

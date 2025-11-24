@@ -1,0 +1,18 @@
+model {
+    #
+    # set priors 
+    for (i in 1:J) {
+    beta[i] ~ dnorm(0, 0.44)
+    }
+    log_lambda ~ dunif(-2,4)
+    lambda<-exp(log_lambda)
+    #
+    # observation model specification
+    #
+    for(i in 1:length(y)) {
+    lp[i] <- x[i,] %*% beta 
+    tp[i] ~ dnorm(lp[i], lambda)
+    p[i] <- exp(tp[i])/(1+exp(tp[i]))
+    y[i]  ~ dbin(p[i], ss[i])
+    }
+    }
